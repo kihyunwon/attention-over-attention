@@ -1,0 +1,4 @@
+src/*.pyc
+src/__pycache__
+data/cnn
+data/dailymail
