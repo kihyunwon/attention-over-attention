@@ -35,7 +35,7 @@ To test an existing model (in progress):
 Credit
 ------
 
-Modified codes for pre-processing, shuffling, and loading dataset is originally from IBM's [Atteion Sum Reader](https://github.com/rkadlec/asreader/blob/master/asreader.git) implementation.
+Modified codes for pre-processing, shuffling, and loading dataset are originally from IBM's [Atteion Sum Reader](https://github.com/rkadlec/asreader/blob/master/asreader.git) implementation.
 
 
 Results (in progress)

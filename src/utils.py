@@ -1,6 +1,7 @@
 import os
 import time
 import nltk
+import numpy as np
 from gensim import corpora
 from nltk.corpus import stopwords
 
@@ -19,28 +20,50 @@ def create_vocabulary(input_stream, vocab_size, sentence_to_tokens_fn=None):
   if not sentence_to_tokens_fn:
     sentence_to_tokens_fn = default_sentence_to_tokens
 
-  words = []
+  docs = []
+  lines = []
   for line in input_stream:
-    tokens = sentence_to_tokens_fn(line.rstrip('\n').rstrip('##########'))
-    if len(tokens) > 0:
-      tokens += ['<s>', '</s>', '<unk>', '<query_end>']
-      words += [token.lower() for token in tokens if token.lower() not in cachedStopWords]
-  
-  vocab = corpora.Dictionary([words], prune_at=vocab_size)
-  print(" [*] Tokenize : %.4fs" % (t0 - time.time()))
+    rline = line.strip()
+    tokens = sentence_to_tokens_fn(rline)
+    if '##########' not in tokens and len(rline) > 0:
+      lines += [token.lower() for token in tokens if token.lower() not in cachedStopWords]
+    elif '##########' in tokens:
+      docs.append(lines)
+      lines = []
+
+  limit = np.abs(vocab_size - 4)
+  vocab = corpora.Dictionary(docs)
+  vocab.filter_extremes(no_below=1, no_above=0.7, keep_n=limit)
+  print(" [*] Tokenize : %.4fs" % (time.time() - t0))
 
   return vocab
 
 def add_vocabulary(vocab, input_stream, vocab_size, sentence_to_tokens_fn=None):
-  new_vocab = create_vocabulary(input_stream, vocab_size, sentence_to_tokens_fn)
-  return vocab.merge_with(new_vocab)
+  if not sentence_to_tokens_fn:
+    sentence_to_tokens_fn = default_sentence_to_tokens
+
+  docs = []
+  lines = []
+  for line in input_stream:
+    rline = line.strip()
+    tokens = sentence_to_tokens_fn(rline)
+    if '##########' not in tokens and len(rline) > 0:
+      lines += [token.lower() for token in tokens if token.lower() not in cachedStopWords]
+    elif '##########' in tokens:
+      docs.append(lines)
+      lines = []
+  
+  limit = np.abs(vocab_size - 4)
+  vocab.add_documents(docs)
+  vocab.filter_extremes(no_below=1, no_above=0.7, keep_n=limit)
+  return vocab
 
 def save_vocabulary(vocab, vocabulary_file):
-  vocab.save(vocabulary_path)
+  vocab.save(vocabulary_file)
 
 def load_vocabulary(vocabulary_file):
-  if os.path.exists(vocabulary_path):
-    vocab = corpora.Dictionary.load(vocabulary_path)
+  if os.path.exists(vocabulary_file):
+    vocab = corpora.Dictionary.load(vocabulary_file)
     return vocab
   else:
-    raise ValueError(" [!] Vocabulary file %s not found.", vocabulary_path)
+    raise ValueError(" [!] Vocabulary file %s not found.", vocabulary_file)

@@ -23,17 +23,20 @@ class CNNDataset:
             self.dictionary = dictionary.token2id
         else:
             self.dictionary = dictionary
+        l = len(dictionary)
+        markers = {'<s>': l, '</s>': l+1, '<unk>': l+2, '<query_end>': l+3}
+        self.dictionary.update(markers)
         self.batch_size = batch_size
         self.d = document_size
         self.q = query_size
 
-        if bos_token is not None and bos_token not in dictionary:
+        if bos_token is not None and bos_token not in self.dictionary:
             raise ValueError
         self.bos_token = bos_token
-        if eos_token is not None and eos_token not in dictionary:
+        if eos_token is not None and eos_token not in self.dictionary:
             raise ValueError
         self.eos_token = eos_token
-        if unk_token not in dictionary:
+        if unk_token not in self.dictionary:
             raise ValueError
         self.unk_token = unk_token
         if level not in ('word', 'character'):
@@ -83,15 +86,21 @@ class CNNDataset:
         return np.array(data)
 
     def _process_story(self, lines):
-        story = lines[2]    # Context document
-        question = lines[4] # Query
-        answer = lines[6]   # Correct answer
-
-        candidates_list = lines[8:] # Answer candidates
+        story = lines[1]    # Context document
+        question = lines[2] # Query
+        answer = lines[3]   # Correct answer
+        candidates_list = lines[4:] # Answer candidates
 
         # Move the correct answer to the first position among the candidates
-        candidates_list.remove(answer)
-        candidates_list.insert(0, answer)
+        replace = None
+        for candidate in candidates_list:
+            if answer in candidate:
+                replace = candidate
+                break
+
+        if replace:
+            candidates_list.remove(replace)
+            candidates_list.insert(0, replace)
 
         candidates_strs = " ".join(candidates_list)
 
@@ -109,11 +118,11 @@ class CNNDataset:
         while True:
             try:
                 line = next(state).strip()
-                if line != "##########":
+                if line != "##########" and len(line) > 0:
                     lines.append(line)
-                else:
+                elif line == "##########":
                     data.append(self._process_story(lines))
-                    lines.clear()
+                    lines = []
             except StopIteration:
                 break
 

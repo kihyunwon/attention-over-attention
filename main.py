@@ -7,9 +7,9 @@ from src import AoAReader
 
 
 parser = argparse.ArgumentParser(description="Inputs for AoAReader.")
-parser.add_argument('-e', '--epoch', type=int, default="25",
-                    help="Epoch to train [25]")
-parser.add_argument('-vs', '--vocab_size', type=int, default="1000",
+parser.add_argument('-e', '--epoch', type=int, default="100",
+                    help="Epoch to train [100]")
+parser.add_argument('-vs', '--vocab_size', type=int, default="10000",
                     help="The size of vocabulary [10000]")
 parser.add_argument('-bs', '--batch_size', type=int, default="32",
                     help="Batch size [32]")

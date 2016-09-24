@@ -117,10 +117,10 @@ class AoAReader(Reader):
     self.prepare_model(vocab.token2id)
 
     # gradient clipping
-    self.op = tf.train.AdamOptimizer(learning_rate, beta1=beta1, beta2=beta2)
-    gvs = self.op.compute_gradients(self.loss)
+    optimizer = tf.train.AdamOptimizer(learning_rate, beta1=beta1, beta2=beta2)
+    gvs = optimizer.compute_gradients(self.loss)
     capped_gvs = [(tf.clip_by_value(grad, -5.0, 5.0), var) for grad, var in gvs]
-    self.op.apply_gradients(gvs)
+    self.op = optimizer.apply_gradients(gvs)
 
     sess.run(tf.initialize_all_variables())
 
@@ -140,36 +140,34 @@ class AoAReader(Reader):
       # data loader
       batch = dataset.batch_loader()
 
-      batch_stop = False
+      y.fill(0)
+      batch_idx = 0
+      inputs, answers = [], []
       while True:
-        y.fill(0)
-        batch_idx = 0
-        inputs, answers = [], []
-        while True:
-          try:
-            context, question, answer, _ = next(batch)
-          except StopIteration:
-            batch_stop = True
-            break
+        try:
+          context, question, answer, _ = next(batch)
+        except StopIteration:
+          break
 
-          data = context.append(question)
-          inputs.append(data)
-          y[batch_idx][int(answer[0])] = 1
+        data = np.concatenate( (context, question) )
+        inputs.append(data)
+        y[batch_idx][int(answer)] = 1
 
-          batch_idx += 1
-          if batch_idx == self.args.batch_size: break
-        if batch_stop: break
+        batch_idx += 1
+        if batch_idx == self.args.batch_size: 
+          break
 
-        _, summary_str, cost, accuracy = sess.run([self.op, merged, self.loss, self.accuracy], 
-                                                   feed_dict={self.inputs: inputs,
-                                                              self.y: y})
-        if counter % 10 == 0:
-          writer.add_summary(summary_str, counter)
-          print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, accuracy: %.8f" \
-              % (epoch_idx, data_idx, self.args.batch_size, time.time() - start_time, np.mean(cost), accuracy))
-        counter += 1
+      _, summary_str, cost, accuracy = sess.run([self.op, merged, self.loss, self.accuracy], 
+                                                 feed_dict={self.inputs: inputs,
+                                                            self.y: y})
+      if counter % 10 == 0:
+        writer.add_summary(summary_str, counter)
+        print("Epoch: [%2d] time: %4.4f, loss: %.8f, accuracy: %.8f" \
+              % (epoch_idx, time.time() - start_time, np.mean(cost), accuracy))
       
-      self.save(sess, self.args.checkpoint_dir, data_type)
+      counter += 1
+      
+    self.save(sess, self.args.checkpoint_dir, data_type)
 
   #def test(self, sess, ckpt_dir, vocab_size, data_dir, data_type):
     #pass

@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 from .cnn_dataset import CNNDataset 
-from .utils import create_vocabulary, add_vocabulary, load_vocabulary
+from .utils import create_vocabulary, add_vocabulary, save_vocabulary, load_vocabulary
 
 """
 Abstract Reader class.
@@ -17,15 +17,15 @@ class Reader:
     self.args = args
     self.vocab = None
 
-  def save(self, sess, checkpoint_dir, dataset, global_step=None):
+  def save(self, sess, checkpoint_dir, data_type, global_step=None):
     self.saver = tf.train.Saver()
 
     print(" [*] Saving checkpoints...")
     model_name = type(self).__name__ or "Reader"
     if self.args.batch_size:
-      model_dir = "%s_%s_%s" % (model_name, dataset, self.args.batch_size)
+      model_dir = "%s_%s_%s" % (model_name, data_type, self.args.batch_size)
     else:
-      model_dir = dataset
+      model_dir = data_type
 
     checkpoint_dir = os.path.join(checkpoint_dir, model_dir)
     if not os.path.exists(checkpoint_dir):
@@ -33,15 +33,15 @@ class Reader:
     self.saver.save(sess, 
         os.path.join(checkpoint_dir, model_name), global_step=global_step)
 
-  def load(self, sess, checkpoint_dir, dataset):
+  def load(self, sess, checkpoint_dir, data_type):
     model_name = type(self).__name__ or "Reader"
     self.saver = tf.train.Saver()
 
     print(" [*] Loading checkpoints...")
     if self.args.batch_size:
-      model_dir = "%s_%s_%s" % (model_name, dataset, self.args.batch_size)
+      model_dir = "%s_%s_%s" % (model_name, data_type, self.args.batch_size)
     else:
-      model_dir = dataset
+      model_dir = data_type
     checkpoint_dir = os.path.join(checkpoint_dir, model_dir)
 
     ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
